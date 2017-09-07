@@ -1,38 +1,34 @@
 #!/usr/bin/env python
 
-import subprocess
 import multiprocessing
-import re
-import os
+import socket
+import time
 
-def ping(ip, count=1):
-    """ Uses the system ping command to get speed of ip or domain name
-    """
-    p_ping = subprocess.Popen(['ping', '-c', str(count), '-W', '1', ip],
-                          shell=False,
-                          stdout=subprocess.PIPE,
-                          stderr=open(os.devnull, 'w'))
 
-    p_ping_out = p_ping.communicate()[0]
-
-    if p_ping.wait() == 0:
-        # rtt min/avg/max/mdev = 22.293/22.293/22.293/0.000 ms
-        search = re.search(r'rtt min/avg/max/mdev = (.*)/(.*)/(.*)/(.*) ms',
-                         p_ping_out, re.M|re.I)
-
-        return float(search.group(2))
-    else:
-        return 9999.0
+MAX_PING = 5.0  # maximum ping and socket timeout
 
 
 def get_ping(mirror):
-    """ Calls ping function for 1 dict with mirror data;
-        URL is being split by slashes to get only domain name.
-        Returns new dict with old data and ping.
+    """Adds 'ping' key with milliseconds to the single mirror info.
+
+    URL is being split by slashes to get the server address.
+
+    Returns:
+        a dict with mirror data.
     """
-    res = mirror
-    res["ping"] = ping(mirror["url"].split('/')[2])
-    return res
+    result = mirror
+    mirror_socket = socket.socket()
+    mirror_socket.settimeout(MAX_PING)
+    time_pre = time.time()
+    try:
+        mirror_socket.connect((mirror['url'].split('/')[2], 80))
+        ping = time.time() - time_pre
+    except socket.error:
+        ping = MAX_PING
+    finally:
+        mirror_socket.close()
+    result['ping'] = ping * 1000
+    return result
 
 
 def get_mirrors_pinged(mirrors, processes=8):
