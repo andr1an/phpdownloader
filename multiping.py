@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import multiprocessing
 import socket
 import time
@@ -16,7 +17,6 @@ def get_ping(mirror):
     Returns:
         a dict with mirror data.
     """
-    result = mirror
     mirror_socket = socket.socket()
     mirror_socket.settimeout(MAX_PING)
     time_pre = time.time()
@@ -27,8 +27,8 @@ def get_ping(mirror):
         ping = MAX_PING
     finally:
         mirror_socket.close()
-    result['ping'] = ping * 1000
-    return result
+    mirror['ping'] = ping * 1000.0
+    return mirror
 
 
 def get_mirrors_pinged(mirrors, processes=8):
@@ -40,6 +40,8 @@ def get_mirrors_pinged(mirrors, processes=8):
 
 if __name__ == '__main__':
     # For testing and demo
+    import json
+
     mirrors = [
         {
             "url": "http://us2.php.net/get/php-7.0.9.tar.bz2/from/this/mirror",
@@ -59,7 +61,4 @@ if __name__ == '__main__':
     ]
 
     mirrors_with_ping = get_mirrors_pinged(mirrors)
-
-    import json
-    print json.dumps(mirrors_with_ping, indent=2)
-    print json.dumps(mirrors, indent=2)
+    print(json.dumps(mirrors_with_ping, indent=2))
